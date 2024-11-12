@@ -49,7 +49,7 @@ jobs:
       - name: Build and Tag Docker Image
         run: |
           IMAGE_NAME=975050307414.dkr.ecr.us-east-1.amazonaws.com/ci-cd
-          docker build -t $IMAGE_NAME:$GITHUB_SHA .
+          docker build -t $IMAGE_NAME:$GITHUB_SHA -f backend/Dockerfile .
           docker tag $IMAGE_NAME:$GITHUB_SHA $IMAGE_NAME:latest
 
       - name: Push Docker Image to ECR
