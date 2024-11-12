@@ -52,3 +52,31 @@ jobs:
         run: |
           docker build -t 975050307414.dkr.ecr.us-east-1.amazonaws.com/ci-cd:$IMAGE_TAG -f backend/Dockerfile backend
           docker push 975050307414.dkr.ecr.us-east-1.amazonaws.com/ci-cd:$IMAGE_TAG 
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: docker 
+    if: github.event_name == 'workflow_dispatch' 
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Connect to EC2 and Deploy
+        env:
+          KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+        run: |
+          echo "$KEY" > ec2-key.pem
+          chmod 600 ec2-key.pem
+
+          ssh -i ec2-key.pem -o StrictHostKeyChecking=no ec2-user@98.81.200.188 << EOF
+            docker pull 975050307414.dkr.ecr.us-east-1.amazonaws.com/ci-cd:$IMAGE_TAG
+            docker stop myapp || true
+            docker rm myapp || true
+            docker run -d -p 80:5000 --name myapp 975050307414.dkr.ecr.us-east-1.amazonaws.com/ci-cd:$IMAGE_TAG
+          EOF
