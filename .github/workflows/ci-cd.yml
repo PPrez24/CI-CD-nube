@@ -46,13 +46,9 @@ jobs:
         run: |
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 975050307414.dkr.ecr.us-east-1.amazonaws.com
 
-      - name: Build and Tag Docker Image
+      - name: Build, Tag and Push Docker Image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          IMAGE_NAME=975050307414.dkr.ecr.us-east-1.amazonaws.com/ci-cd
-          docker build -t $IMAGE_NAME:$GITHUB_SHA -f backend/Dockerfile backend 
-          docker tag $IMAGE_NAME:$GITHUB_SHA $IMAGE_NAME:latest
-
-      - name: Push Docker Image to ECR
-        run: |
-          docker push $IMAGE_NAME:$GITHUB_SHA
-          docker push $IMAGE_NAME:latest
+          docker build -t 975050307414.dkr.ecr.us-east-1.amazonaws.com/ci-cd:$IMAGE_TAG .
+          docker push 975050307414.dkr.ecr.us-east-1.amazonaws.com/ci-cd:$IMAGE_TAG 
