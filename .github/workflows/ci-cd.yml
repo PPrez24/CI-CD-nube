@@ -25,7 +25,7 @@ jobs:
 
   docker:
     runs-on: ubuntu-latest
-    needs: build # Esta etapa se ejecuta solo si "build" fue exitosa
+    needs: build
 
     steps:
       - name: Check out code
@@ -57,22 +57,23 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: docker
-    if: github.event_name == 'workflow_dispatch' 
+    if: github.event_name == 'workflow_dispatch'
     steps:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.EC2_PRIVATE_KEY }}
+      - name: Set up SSH Key for EC2
+        run: |
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > ec2-key.pem
+          chmod 600 ec2-key.pem
 
       - name: Deploy to EC2
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          ssh -o StrictHostKeyChecking=no -i ${{ secrets.EC2_PRIVATE_KEY_PATH }} ec2-user@98.81.200.188
+          ssh -i ec2-key.pem -o StrictHostKeyChecking=no ec2-user@98.81.200.188 << EOF
             docker pull 975050307414.dkr.ecr.us-east-1.amazonaws.com/ci-cd:$IMAGE_TAG
-            docker stop my-app || true &&
-            docker rm my-app || true &&
+            docker stop my-app || true
+            docker rm my-app || true
             docker run -d --name my-app -p 80:80 975050307414.dkr.ecr.us-east-1.amazonaws.com/ci-cd:$IMAGE_TAG
+          EOF
