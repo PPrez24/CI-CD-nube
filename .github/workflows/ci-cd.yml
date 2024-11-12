@@ -1,0 +1,42 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies and build backend
+        working-directory: ./backend
+        run: |
+          npm install
+          npm test # Puedes agregar pruebas si tienes
+
+      - name: Install dependencies and build frontend
+        working-directory: ./frontend
+        run: |
+          npm install
+          npm test # Puedes agregar pruebas si tienes
+
+      - name: Build Docker images
+        run: docker-compose build
+
+      - name: Push Docker images
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+          docker-compose push
